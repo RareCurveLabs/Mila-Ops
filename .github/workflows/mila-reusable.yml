@@ -6,7 +6,7 @@ on:
       OPENAI_API_KEY:   { required: true }
       VERCEL_TOKEN:     { required: false }
       VERCEL_ORG_ID:    { required: false }
-      VERCEL_PROJECT_ID:{ required: false }
+      VERCEL_PROJECT_ID: { required: false }
 
 permissions:
   contents: write
@@ -49,6 +49,6 @@ jobs:
           GH_TOKEN:         ${{ secrets.GITHUB_TOKEN }}
           VERCEL_TOKEN:     ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID:    ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID:${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           MILA_AUTONOMY:    ${{ vars.MILA_AUTONOMY || 'L2' }}
         run: node .mila-ops/scripts/mila-runner.cjs
