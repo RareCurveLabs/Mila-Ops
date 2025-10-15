@@ -1,0 +1,39 @@
+name: Mila Plan
+description: Plan → (optional) patches → /go
+labels: ["mila:plan"]
+body:
+  - type: textarea
+    id: plan
+    attributes:
+      label: Plan
+      description: Describe the desired outcome, constraints, acceptance tests, and mode (brainstorm|prototype|enhancement|fix|evolution).
+      placeholder: |
+        ```plan
+        mode: enhancement
+        outcome:
+          - Email teaser renders legibly at 640px and 390px without horizontal scroll.
+          - Primary CTA visible above the fold on 390px.
+        acceptance:
+          - Visual checks pass at 1200/992/768/640/390
+          - Email inlined CSS; no external fonts; bulletproof button
+        non_goals:
+          - Full report redesign
+        ``` 
+      render: markdown
+  - type: textarea
+    id: patches
+    attributes:
+      label: Patches (optional)
+      description: Unified diff(s) to apply. If omitted, extend runner to call OpenAI for codegen.
+      placeholder: |
+        ```patches
+        diff --git a/apps/web/components/EmailTeaser.tsx b/apps/web/components/EmailTeaser.tsx
+        index abc..def 100644
+        --- a/apps/web/components/EmailTeaser.tsx
+        +++ b/apps/web/components/EmailTeaser.tsx
+        @@
+        - <div class="kpis row">
+        + <table role="presentation" width="100%" style="max-width:640px;border-collapse:collapse;">
+        ...
+        ```
+      render: markdown

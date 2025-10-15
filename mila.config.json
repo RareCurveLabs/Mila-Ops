@@ -1,0 +1,13 @@
+{
+    "autonomy": "L2",
+    "branchPrefix": "mila/",
+    "autoMerge": {
+      "enabled": true,
+      "maxChangedLines": 400,
+      "requireChecks": ["build", "test"]
+    },
+    "defaultMode": "enhancement",
+    "deploy": { "provider": "vercel", "prodOnMergeTo": "main" },
+    "reviewers": [],
+    "conventionalCommits": true
+  }
