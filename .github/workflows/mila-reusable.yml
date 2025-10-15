@@ -3,16 +3,11 @@ name: MILA Exec (Reusable)
 on:
   workflow_call:
     secrets:
-      OPENAI_API_KEY:
-        required: true
-      GITHUB_TOKEN:
-        required: true
-      VERCEL_TOKEN:
-        required: false
-      VERCEL_ORG_ID:
-        required: false
-      VERCEL_PROJECT_ID:
-        required: false
+      OPENAI_API_KEY: { required: true }
+      GITHUB_TOKEN:   { required: true }
+      VERCEL_TOKEN:   { required: false }
+      VERCEL_ORG_ID:  { required: false }
+      VERCEL_PROJECT_ID: { required: false }
 
 permissions:
   contents: write
@@ -23,29 +18,35 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # 1) Checkout the CALLER repo (rc-rank-old, etc.)
+      - name: Checkout caller repo
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
+      # 2) Checkout Mila-Ops to a subfolder so we can run the shared runner
+      - name: Checkout Mila-Ops
+        uses: actions/checkout@v4
+        with:
+          repository: RareCurveLabs/Mila-Ops
+          path: .mila-ops
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Setup pnpm
         run: npm i -g pnpm
 
-      - name: Install deps (best-effort)
+      - name: Install caller deps (best-effort)
         run: pnpm i || true
 
-      # Optional: ensure `gh` CLI is available for the runner script
-      - name: Setup GitHub CLI
-        uses: cli/gh-action@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run MILA
+      - name: Run MILA runner from Mila-Ops
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
+          VERCEL_TOKEN:   ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID:  ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          MILA_AUTONOMY: ${{ vars.MILA_AUTONOMY || 'L2' }}
-        run: node scripts/mila-runner.cjs
+          MILA_AUTONOMY:  ${{ vars.MILA_AUTONOMY || 'L2' }}
+        run: node .mila-ops/scripts/mila-runner.cjs
