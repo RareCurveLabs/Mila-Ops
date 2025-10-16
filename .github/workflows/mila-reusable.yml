@@ -60,3 +60,15 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           MILA_AUTONOMY:    ${{ vars.MILA_AUTONOMY || 'L2' }}
         run: node .mila-ops/scripts/mila-runner.cjs
+
+      - name: Create PR with any changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: apply Mila patches [skip ci]"
+          branch: mila/${{ github.run_id }}
+          title: "Mila: apply patches from issue #${{ github.event.issue.number || github.event.pull_request.number || 'manual' }}"
+          body: "Automated PR opened by Mila runner."
+          labels: mila:auto
+          signoff: false
+          delete-branch: true
