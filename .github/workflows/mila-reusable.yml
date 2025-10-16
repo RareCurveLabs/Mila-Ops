@@ -19,6 +19,9 @@ jobs:
     steps:
       - name: Checkout caller repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
 
       - name: Checkout Mila-Ops
         uses: actions/checkout@v4
@@ -40,6 +43,11 @@ jobs:
       - name: Ensure gh is available
         run: |
           type -p gh || (sudo apt-get update && sudo apt-get install -y gh)
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name  "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
       - name: Run MILA runner from Mila-Ops
         env:
