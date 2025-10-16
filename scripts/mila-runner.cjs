@@ -1,44 +1,54 @@
-const cp = require('node:child_process');
-const fs = require('fs');
+#!/usr/bin/env node
+// Robust "apply patches" runner. Reads patches from issue body OR triggering comment.
+// If no patches, exits 0 so the PR step can no-op gracefully.
 
-function sh(cmd, opts={stdio:'pipe'}) {
-  return cp.execSync(cmd, {...opts, encoding:'utf8'}).trim();
+const cp = require("node:child_process");
+const fs = require("fs");
+
+function sh(cmd, opts = { stdio: "pipe" }) {
+  return cp.execSync(cmd, { ...opts, encoding: "utf8" }).trim();
 }
 
-function extractBlock(text, lang) {
-  const re = new RegExp("```" + lang + "\\n([\\s\\S]*?)```", "m");
-  const m = text.match(re);
-  return m ? m[1].trim() : null;
-}
-
-function getTrigger() {
+function getEvent() {
   const p = process.env.GITHUB_EVENT_PATH;
   if (!p || !fs.existsSync(p)) return null;
-  const ev = JSON.parse(fs.readFileSync(p, 'utf8'));
-  // prefer issue; fall back to comment.issue
-  const issue = ev.issue || (ev.comment && ev.issue) || null;
-  return { ev, issue };
+  try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; }
+}
+
+function extractFencedBlock(text = "", fence = "patches") {
+  // Matches ```patches\n...``` or ```patches\r\n...```
+  const re = new RegExp("```" + fence + "\\r?\\n([\\s\\S]*?)\\n```", "i");
+  const m = text.match(re);
+  return m && m[1] ? m[1] : "";
 }
 
 async function main() {
-  const trig = getTrigger();
-  const body = trig?.issue?.body || '';
-  const patches = extractBlock(body, 'patches');
+  const ev = getEvent();
+  const issueBody = ev?.issue?.body || "";
+  const commentBody = ev?.comment?.body || "";
+
+  // Prefer patches in the issue body, else fall back to the triggering comment.
+  let patches = extractFencedBlock(issueBody, "patches");
+  if (!patches) patches = extractFencedBlock(commentBody, "patches");
 
   if (!patches) {
-    console.log("No ```patches block found. Nothing to apply.");
-    process.exit(0); // let create-pull-request still run (no changes → no PR)
+    console.log("[mila-runner] No ```patches block found in issue or comment. Nothing to apply.");
+    // Exit 0 so downstream "create-pull-request" step just finds no changes and exits cleanly.
+    process.exit(0);
   }
 
-  fs.writeFileSync('mila.patch', patches, 'utf8');
+  // Write and apply
+  fs.writeFileSync("mila.patch", patches, "utf8");
   try {
-    sh(`git apply --whitespace=fix mila.patch`, {stdio:'inherit'});
-    console.log("Patch applied.");
+    // whitespace=fix tolerates trailing spaces/CRLF
+    sh(`git apply --whitespace=fix mila.patch`, { stdio: "inherit" });
+    console.log("[mila-runner] Patch applied.");
   } catch (e) {
-    console.error("Patch failed to apply:", e.message);
+    console.error("[mila-runner] Patch failed to apply.\n", e.message);
+    // Dump first 200 chars for quick triage
+    console.error("[mila-runner] First 200 chars of patch:\n", patches.slice(0, 200));
     process.exit(1);
   }
-  // Do not commit/push here. The next workflow step will open the PR.
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+main().catch((e) => { console.error(e); process.exit(1); });
