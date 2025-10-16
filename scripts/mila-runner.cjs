@@ -20,6 +20,40 @@ if (!GITHUB_TOKEN) {
   process.exit(1);
 }
 
+// Add near the top, after requires:
+function safeConfigGit() {
+  try {
+    sh(`git config user.name`); // if set, ok
+  } catch {
+    sh(`git config --global user.name "${process.env.GITHUB_ACTOR || 'github-actions[bot]'}"`);
+    sh(`git config --global user.email "${process.env.GITHUB_ACTOR || 'github-actions'}@users.noreply.github.com"`);
+  }
+}
+
+async function main() {
+  safeConfigGit();
+  // ...
+  // After `git add -A`, make commit tolerant of "nothing to commit"
+  try {
+    sh(`git diff --cached --quiet`) && console.log("No staged changes; skipping commit.");
+    if (sh(`git diff --cached --name-only`)) {
+      const msg = `chore: apply Mila patches\n\n[skip ci]`;
+      sh(`git commit -m ${JSON.stringify(msg)}`);
+    }
+  } catch (e) {
+    console.error("Commit failed:", e.message);
+    process.exit(1);
+  }
+
+  // Ensure branch exists upstream before PR
+  try { sh(`git push -u origin ${branchName}`); }
+  catch (e) {
+    console.error("Push failed:", e.message);
+    process.exit(1);
+  }
+  // ...
+}
+
 // --- Helpers to fetch current issue payload via GitHub CLI
 function gh(cmd) { return sh(`gh ${cmd}`, {stdio:'pipe'}); }
 
